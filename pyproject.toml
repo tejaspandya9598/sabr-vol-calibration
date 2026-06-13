@@ -1,0 +1,29 @@
+[project]
+name = "sabr-vol-calibration"
+version = "0.1.0"
+description = "SABR stochastic-volatility model: Hagan implied-vol approximation and least-squares calibration of a volatility smile to market quotes."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Tejas Pandya", email = "tbp8777@nyu.edu" }]
+license = { text = "MIT" }
+keywords = ["sabr", "stochastic-volatility", "implied-volatility", "calibration", "options", "quant"]
+
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "requests>=2.31",   # Deribit public API (live BTC option smile)
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "N803", "N806"]
