@@ -21,6 +21,39 @@ On synthetic ground-truth data the calibrator recovers the parameters essentiall
 exactly (RMSE < 0.04 vol points — see the tests); on the live Deribit smile it fits the
 real skew and curvature.
 
+## The math
+
+SABR models the forward $F_t$ with stochastic volatility $\alpha_t$:
+
+$$dF_t = \alpha_t F_t^{\beta}\, dW_t^1, \qquad
+d\alpha_t = \nu\, \alpha_t\, dW_t^2, \qquad
+dW^1 dW^2 = \rho\, dt$$
+
+Hagan's singular-perturbation expansion maps $(\alpha,\beta,\rho,\nu)$ to a Black
+implied vol per strike:
+
+$$\sigma_{BS}(K,F) \approx
+\frac{\alpha}{(FK)^{\frac{1-\beta}{2}}\left[1 + \frac{(1-\beta)^2}{24}\ln^2\frac{F}{K} + \frac{(1-\beta)^4}{1920}\ln^4\frac{F}{K}\right]}
+\cdot \frac{z}{x(z)} \cdot \left[1 + \left(\frac{(1-\beta)^2}{24}\frac{\alpha^2}{(FK)^{1-\beta}} + \frac{\rho\beta\nu\alpha}{4(FK)^{\frac{1-\beta}{2}}} + \frac{2-3\rho^2}{24}\nu^2\right)T\right]$$
+
+with $z = \frac{\nu}{\alpha}(FK)^{\frac{1-\beta}{2}}\ln\frac{F}{K}$ and
+$x(z) = \ln\!\frac{\sqrt{1-2\rho z+z^2}+z-\rho}{1-\rho}$; at the money the formula
+collapses to $\sigma_{ATM} \approx \alpha / F^{1-\beta} \cdot [1 + (\cdot)T]$.
+
+Parameter roles are close to orthogonal, which is why the fit is stable: $\alpha$
+sets the vol **level**, $\rho$ tilts the **skew**, $\nu$ bends the **curvature**
+(smile wings), and $\beta$ fixes the backbone — how ATM vol moves with $F$ — which
+is why it's set by convention rather than fitted (it's nearly collinear with $\rho$).
+Calibration is non-linear least squares over the OTM quotes,
+$\min_{\alpha,\rho,\nu} \sum_i \big(\sigma_{model}(K_i) - \sigma_{mkt}(K_i)\big)^2$,
+seeded from the ATM quote so the initial guess is scale-invariant.
+
+## References
+
+- Hagan, P., Kumar, D., Lesniewski, A. & Woodward, D. (2002), *Managing Smile Risk*, Wilmott Magazine — the implied-vol formula and the hedging argument for SABR over local vol.
+- Obłój, J. (2008), *Fine-tune your smile: Correction to Hagan et al.* — the fix for the low-strike wing.
+- West, G. (2005), *Calibration of the SABR Model in Illiquid Markets*, Applied Mathematical Finance 12(4).
+
 ## Run
 
 ```bash
