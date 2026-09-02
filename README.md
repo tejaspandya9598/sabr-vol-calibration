@@ -17,9 +17,25 @@ rates/FX/crypto smiles.
    initial `alpha` is seeded from the ATM quote so the fit is scale-invariant.
 4. **Plot** (`viz.py`) — market quotes vs the fitted smile, with the fit RMSE.
 
-On synthetic ground-truth data the calibrator recovers the parameters essentially
-exactly (RMSE < 0.04 vol points — see the tests); on the live Deribit smile it fits the
-real skew and curvature.
+**Synthetic ground truth** (F=100, T=1, true alpha/beta/rho/nu = 2.0/0.5/-0.30/0.40,
+with 30bp of quote noise injected):
+
+| parameter | true | recovered |
+|---|--:|--:|
+| alpha | 2.00 | 2.0033 |
+| rho | -0.300 | -0.3047 |
+| nu | 0.400 | 0.3918 |
+
+RMSE **0.035 vol points** — essentially the injected noise floor.
+
+**Live BTC smile** (Deribit, 18SEP26 expiry, F = 77,372, T = 0.042y, 21 strikes,
+beta fixed at 0.5): alpha 87.98, rho -0.007, nu 3.54, RMSE **0.43 vol points**. Worst
+strike is the 95,000 wing at 1.2 vol points; everything inside 0.88 – 1.16 moneyness
+fits to under 0.6. A near-zero rho with nu of 3.5 is the right shape for a two-week
+crypto smile: almost no skew, a lot of curvature.
+
+Reproduce both with `uv run pytest` and `uv run python scripts/run_calibration.py`
+(the live numbers move with the market; the shape does not).
 
 ## The math
 

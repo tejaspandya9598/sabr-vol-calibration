@@ -84,3 +84,41 @@ def test_expiry_codes_parse_in_utc_and_ignore_locale():
     import pytest
     with pytest.raises(ValueError):
         _expiry_datetime("27XXX25")
+
+
+def test_alpha_bounds_scale_with_the_forward():
+    """alpha carries units of vol * F^(1-beta), so its box has to scale with F.
+
+    Only the seed did. On a BTC smile (F ~ 77,000, beta 0.5) the ATM seed is ~139
+    against a hardcoded upper bound of 5.0, and scipy refused to start:
+    "Initial guess is outside of provided bounds". The bound was written for a
+    rates forward near 0.04, where F^(1-beta) is about 0.2 and it never bites.
+    """
+    F_btc = 77_000.0
+    strikes = F_btc * np.array([0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15])
+    true_alpha = 0.35 * F_btc ** 0.5          # 35% ATM vol in alpha units
+    vols = smile(F_btc, strikes, 0.25, true_alpha, 0.5, -0.1, 1.2)
+
+    fit = calibrate(F_btc, strikes, vols, 0.25, beta=0.5)
+    assert fit["rmse"] < 1e-3
+    assert abs(fit["alpha"] - true_alpha) / true_alpha < 0.05
+
+
+def test_rates_scale_smile_still_calibrates():
+    """The other end of the scale: a 4% forward, where alpha is O(0.2)."""
+    F_rate = 0.04
+    strikes = F_rate + np.array([-0.01, -0.005, 0.0, 0.005, 0.01])
+    true_alpha = 0.30 * F_rate ** 0.5
+    vols = smile(F_rate, strikes, 2.0, true_alpha, 0.5, -0.2, 0.5)
+    fit = calibrate(F_rate, strikes, vols, 2.0, beta=0.5)
+    assert fit["rmse"] < 1e-3
+    assert abs(fit["alpha"] - true_alpha) / true_alpha < 0.05
+
+
+def test_non_positive_forward_is_rejected():
+    try:
+        calibrate(0.0, STRIKES, _market_smile(), T, beta=0.5)
+    except ValueError as e:
+        assert "forward must be positive" in str(e)
+    else:
+        raise AssertionError("expected a ValueError on a zero forward")
