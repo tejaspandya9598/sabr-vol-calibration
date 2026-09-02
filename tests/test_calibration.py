@@ -42,3 +42,45 @@ def test_fit_is_tight():
 def test_atm_vol_positive_and_finite():
     v = hagan_lognormal_vol(100, 100, 1.0, 2.0, 0.5, -0.3, 0.4)
     assert 0 < v < 1.0
+
+
+def test_no_numerical_notch_near_the_forward():
+    """z/x(z) is 0/0 at the forward and loses precision either side of it.
+
+    Sampling straight through the ATM point used to produce a notch a few strikes
+    wide, which the calibrator would then happily fit. The smile should be smooth:
+    no interior point may deviate from the average of its neighbours by more than a
+    basis point of vol.
+    """
+    ks = np.linspace(F - 0.5, F + 0.5, 41)
+    vols = smile(F, ks, T, TRUE["alpha"], TRUE["beta"], TRUE["rho"], TRUE["nu"])
+    assert np.all(np.isfinite(vols))
+    kinks = np.abs(vols[1:-1] - 0.5 * (vols[:-2] + vols[2:]))
+    assert kinks.max() < 1e-4, f"smile is not smooth through ATM: max kink {kinks.max():.2e}"
+
+
+def test_atm_branch_agrees_with_the_general_formula():
+    """The exact-ATM shortcut and the general expression must meet in the middle."""
+    exact = hagan_lognormal_vol(F, F, T, TRUE["alpha"], TRUE["beta"], TRUE["rho"], TRUE["nu"])
+    nudged = hagan_lognormal_vol(F, F * (1 + 1e-9), T,
+                                 TRUE["alpha"], TRUE["beta"], TRUE["rho"], TRUE["nu"])
+    assert abs(exact - nudged) < 1e-8
+
+
+def test_rho_outside_the_unit_interval_is_rejected():
+    import pytest
+    for bad in (-1.0, 1.0, 1.5):
+        with pytest.raises(ValueError):
+            hagan_lognormal_vol(F, 105.0, T, 2.0, 0.5, bad, 0.4)
+
+
+def test_expiry_codes_parse_in_utc_and_ignore_locale():
+    """Deribit expiries are 08:00 UTC and the month is always English uppercase."""
+    from datetime import datetime, timezone
+    from sabr.data import _expiry_datetime
+    assert _expiry_datetime("27JUN25") == datetime(2025, 6, 27, 8, tzinfo=timezone.utc)
+    assert _expiry_datetime("1JAN26") == datetime(2026, 1, 1, 8, tzinfo=timezone.utc)
+    assert _expiry_datetime("27jun25") == _expiry_datetime("27JUN25")
+    import pytest
+    with pytest.raises(ValueError):
+        _expiry_datetime("27XXX25")
