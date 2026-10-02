@@ -1,6 +1,6 @@
 [project]
 name = "sabr-vol-calibration"
-version = "0.1.0"
+version = "0.2.0"
 description = "SABR stochastic-volatility model: Hagan implied-vol approximation and least-squares calibration of a volatility smile to market quotes."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -11,15 +11,24 @@ keywords = ["sabr", "stochastic-volatility", "implied-volatility", "calibration"
 dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",
-    "matplotlib>=3.8",
-    "requests>=2.31",   # Deribit public API (live BTC option smile)
 ]
+
+[project.optional-dependencies]
+# Only the live demo needs these: sabr.data (Deribit public API) and sabr.viz (plots).
+demo = [
+    "matplotlib>=3.8",
+    "requests>=2.31",
+]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = ["pytest>=8.0", "ruff>=0.5"]
 
-[tool.uv]
-package = false
+[tool.uv.build-backend]
+module-name = "sabr"
 
 [tool.ruff]
 line-length = 110

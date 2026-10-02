@@ -78,9 +78,15 @@ seeded from the ATM quote so the initial guess is scale-invariant.
 ## Run
 
 ```bash
-uv sync
+uv sync --extra demo                       # core is numpy + scipy; the live demo adds requests + matplotlib
 uv run python scripts/run_calibration.py   # live Deribit smile -> fitted params + reports/figures/
 uv run pytest                              # recovers known params from a smile fixture (offline)
+```
+
+Use it as a library (core only, no demo extras):
+
+```bash
+pip install "sabr-vol-calibration @ git+https://github.com/tejaspandya9598/sabr-vol-calibration@v0.2.0"
 ```
 
 ## Structure
