@@ -14,7 +14,8 @@ rates/FX/crypto smiles.
    including the ATM limit.
 3. **Calibration** (`calibration.py`) — fix `beta` (0.5 for rates, ~1 for crypto/FX) and
    fit `alpha` (level), `rho` (skew), `nu` (vol-of-vol) by non-linear least squares; the
-   initial `alpha` is seeded from the ATM quote so the fit is scale-invariant.
+   initial `alpha` and its bounds scale with `F^(1-beta)`, so the same code fits a 4% rates
+   forward and a 77,000 BTC forward. The live run uses `beta = 0.5`.
 4. **Plot** (`viz.py`) — market quotes vs the fitted smile, with the fit RMSE.
 
 **Synthetic ground truth** (F=100, T=1, true alpha/beta/rho/nu = 2.0/0.5/-0.30/0.40,
@@ -33,6 +34,10 @@ beta fixed at 0.5): alpha 87.98, rho -0.007, nu 3.54, RMSE **0.43 vol points**. 
 strike is the 95,000 wing at 1.2 vol points; everything inside 0.88 – 1.16 moneyness
 fits to under 0.6. A near-zero rho with nu of 3.5 is the right shape for a two-week
 crypto smile: almost no skew, a lot of curvature.
+
+Re-run on 2026-10-02 (16OCT26 expiry, F = 86,507, T = 0.038y, 20 strikes): alpha 89.86,
+rho −0.020, nu 3.74, RMSE **0.90 vol points**. Same shape; the fit error moves with how
+far out the day's wings are quoted. The figure in `reports/figures/` is the 18SEP26 fit.
 
 Reproduce both with `uv run pytest` and `uv run python scripts/run_calibration.py`
 (the live numbers move with the market; the shape does not).
@@ -67,7 +72,7 @@ seeded from the ATM quote so the initial guess is scale-invariant.
 ## References
 
 - Hagan, P., Kumar, D., Lesniewski, A. & Woodward, D. (2002), *Managing Smile Risk*, Wilmott Magazine — the implied-vol formula and the hedging argument for SABR over local vol.
-- Obłój, J. (2008), *Fine-tune your smile: Correction to Hagan et al.* — the fix for the low-strike wing.
+- Obłój, J. (2008), *Fine-tune your smile: Correction to Hagan et al.* — the fix for the low-strike wing (not implemented here; this repo uses Hagan's original expansion).
 - West, G. (2005), *Calibration of the SABR Model in Illiquid Markets*, Applied Mathematical Finance 12(4).
 
 ## Run
@@ -93,10 +98,13 @@ sabr-vol-calibration/
 
 ## Notes
 
-- **Real data, no synthetic.** The smile comes live from Deribit; the unit tests build a
-  smile from known SABR parameters so calibration can be checked against the truth offline.
-- The Deribit client is multi-call and wasn't exercised against the live endpoint from the
-  build environment — confirm the first live pull when you run it.
+- **Live data for the fit, synthetic data for the tests.** `run_calibration.py` pulls the
+  smile live from Deribit; the unit tests build a smile from known SABR parameters so the
+  calibrator can be checked against the truth offline.
+- The smile is centred on Deribit's published forward for the expiry (`underlying_price`),
+  not on spot, and expiries are parsed as 08:00 UTC regardless of locale (both tested).
+- 10 tests: parameter recovery, ATM smoothness, rho bounds, expiry parsing, and alpha
+  bounds that scale from a 4% rates forward to a BTC forward.
 
 ---
 

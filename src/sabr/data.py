@@ -5,9 +5,7 @@ Deribit publishes a mark implied vol per listed option. We take the nearest expi
 that's at least `min_days` out, keep the out-of-the-money quote at each strike (the
 liquid side), and return a clean (forward, strikes, vols) smile to calibrate.
 
-NOTE: this is a multi-call live client; it needs a real network round-trip to Deribit
-and hasn't been run against the live endpoint from the build sandbox — verify the first
-pull when you run it.
+Needs a network round-trip to Deribit; verified live on 18SEP26 and 16OCT26 expiries.
 """
 from __future__ import annotations
 
